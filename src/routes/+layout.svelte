@@ -16,7 +16,7 @@
 	}
 
 	:global(body) {
-		background-color: theme(--color-neutral-900);
+		background-color: theme(--color-black);
 		color: theme(--color-white);
 	}
 </style>
