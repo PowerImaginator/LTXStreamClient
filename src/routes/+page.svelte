@@ -27,9 +27,9 @@
 
 	const validationInputStyles = (valid: boolean) => {
 		if (valid) {
-			return 'border border-white/25 hover:border-white/75 focus:border-white/75';
+			return 'border border-white/25 enabled:hover:border-white/75 enabled:focus:border-white/75';
 		} else {
-			return 'border border-red-500 hover:border-red-300 focus:border-red-300';
+			return 'border border-red-500 enabled:hover:border-red-300 enabled:focus:border-red-300';
 		}
 	};
 
@@ -93,11 +93,13 @@
 			prevNegativePrompt = negativePrompt;
 		}
 
-		if (!videoBuffer || videoBuffer.getWidth() !== width || videoBuffer.getHeight() !== height) {
+		if (!videoBuffer || videoBuffer.width !== width || videoBuffer.height !== height) {
 			videoBuffer = new VideoBuffer(width, height);
-			await videoBuffer.pushImageData(
-				await convertImageUrlToImageData(conditionImageUrl!, width, height)
-			);
+			videoBuffer.frames = [
+				await window.createImageBitmap(
+					await convertImageUrlToImageData(conditionImageUrl!, width, height)
+				)
+			];
 		}
 
 		// TODO: Update conditioning
@@ -114,12 +116,13 @@
 			Reference Image
 		</div>
 		<button
-			class="relative mt-2 w-full flex-none cursor-pointer overflow-hidden rounded-lg bg-neutral-900 pb-[56.25%] transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="relative mt-2 w-full flex-none cursor-pointer overflow-hidden rounded-lg bg-neutral-900 pb-[56.25%] transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:cursor-auto disabled:opacity-30 {validationInputStyles(
 				conditionImageUrlValid
 			)}"
 			style={conditionImageUrl
 				? `background: url("${conditionImageUrl}") no-repeat center center; background-size: cover;`
 				: ''}
+			disabled={ltxWebSocket?.busy}
 			onclick={handleUpload}
 		>
 			<div
@@ -147,11 +150,12 @@
 					for="width">Width</label
 				>
 				<input
-					class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+					class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 						widthValid
 					)}"
 					type="number"
 					id="width"
+					disabled={ltxWebSocket?.busy}
 					bind:value={width}
 				/>
 			</div>
@@ -162,11 +166,12 @@
 					for="height">Height</label
 				>
 				<input
-					class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+					class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 						heightValid
 					)}"
 					type="number"
 					id="height"
+					disabled={ltxWebSocket?.busy}
 					bind:value={height}
 				/>
 			</div>
@@ -181,10 +186,11 @@
 			for="prompt">Prompt</label
 		>
 		<input
-			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 				promptValid
 			)}"
 			id="prompt"
+			disabled={ltxWebSocket?.busy}
 			bind:value={prompt}
 		/>
 
@@ -199,10 +205,11 @@
 			Negative Prompt
 		</label>
 		<input
-			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 				negativePromptValid
 			)}"
 			id="negative-prompt"
+			disabled={ltxWebSocket?.busy}
 			bind:value={negativePrompt}
 		/>
 
@@ -210,11 +217,12 @@
 			>Seed</label
 		>
 		<input
-			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 				seedValid
 			)}"
 			type="number"
 			id="seed"
+			disabled={ltxWebSocket?.busy}
 			bind:value={seed}
 		/>
 
@@ -229,11 +237,12 @@
 			Frames To Add (per chunk)
 		</label>
 		<input
-			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 				chunkFramesToAddValid
 			)}"
 			type="number"
 			id="chunk-frames-to-add"
+			disabled={ltxWebSocket?.busy}
 			bind:value={chunkFramesToAdd}
 		/>
 
@@ -248,11 +257,12 @@
 			Total Frames (per chunk)
 		</label>
 		<input
-			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 				chunkTotalFramesValid
 			)}"
 			type="number"
 			id="chunk-total-frames"
+			disabled={ltxWebSocket?.busy}
 			bind:value={chunkTotalFrames}
 		/>
 
@@ -267,11 +277,12 @@
 			for="server-url">Server URL</label
 		>
 		<input
-			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors hover:bg-neutral-800 focus:bg-neutral-800 {validationInputStyles(
+			class="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2 transition-colors enabled:hover:bg-neutral-800 enabled:focus:bg-neutral-800 disabled:opacity-30 {validationInputStyles(
 				serverUrlValid
 			)}"
 			type="url"
 			id="server-url"
+			disabled={ltxWebSocket?.busy}
 			bind:value={serverUrl}
 		/>
 
@@ -280,8 +291,8 @@
 		{/if}
 
 		<button
-			class="mt-4 w-full flex-none cursor-pointer rounded-full border border-transparent bg-rose-500 px-4 py-2 transition-colors hover:bg-rose-600 focus:border-rose-300 focus:bg-rose-600 disabled:cursor-auto disabled:bg-neutral-600"
-			disabled={!allValid}
+			class="mt-4 w-full flex-none cursor-pointer rounded-full border border-transparent bg-rose-500 px-4 py-2 transition-colors focus:bg-rose-600 enabled:hover:bg-rose-600 enabled:focus:border-rose-300 disabled:cursor-auto disabled:bg-neutral-700 disabled:text-neutral-400"
+			disabled={!allValid || ltxWebSocket?.busy}
 			onclick={handleGenerate}
 		>
 			Generate
