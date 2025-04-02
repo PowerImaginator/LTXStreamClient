@@ -1,4 +1,4 @@
-export const convertImageUrlToImageData = (width: number, height: number, color: string) => {
+export const createSolidColorImageData = (width: number, height: number, color: string) => {
 	const canvas = new OffscreenCanvas(width, height);
 	const ctx = canvas.getContext('2d')!;
 	ctx.fillStyle = color;

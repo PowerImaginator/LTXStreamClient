@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ArrowUpTray from '$lib/components/icons/20/ArrowUpTray.svelte';
 	import { convertImageUrlToImageData } from '$lib/utils/convertImageUrlToImageData';
-	import { LTXWebSocket } from '$lib/utils/LTXWebSocket.svelte';
+	import { LTXWebSocket, LTXWebSocketMessageType } from '$lib/utils/LTXWebSocket.svelte';
 	import { openImageFile } from '$lib/utils/openImageFile';
 	import { VideoBuffer } from '$lib/utils/VideoBuffer.svelte';
 
@@ -38,9 +38,9 @@
 	let conditionImageUrl: string | null = $state(null);
 	let conditionImageUrlValid = $derived(!!conditionImageUrl);
 	let width = $state(768);
-	let widthValid = $derived(!!width && width % 8 === 0);
+	let widthValid = $derived(!!width && width % 32 === 0);
 	let height = $state(512);
-	let heightValid = $derived(!!height && height % 8 === 0);
+	let heightValid = $derived(!!height && height % 32 === 0);
 	let prompt = $state(''),
 		prevPrompt = $state('');
 	let promptValid = $derived(!!prompt);
@@ -53,6 +53,14 @@
 	let chunkFramesToAddValid = $derived(chunkFramesToAdd >= 8 && chunkFramesToAdd % 8 === 0);
 	let chunkTotalFrames = $state(25);
 	let chunkTotalFramesValid = $derived(chunkTotalFrames >= 9 && (chunkTotalFrames - 1) % 8 === 0);
+	let frameRate = $state(24);
+	let frameRateValid = $derived(Number.isInteger(frameRate) && frameRate > 0);
+	let bitRate = $state(1e6);
+	let bitRateValid = $derived(Number.isInteger(bitRate) && bitRate > 0);
+	let numInferenceSteps = $state(25);
+	let numInferenceStepsValid = $derived(
+		Number.isInteger(numInferenceSteps) && numInferenceSteps > 0
+	);
 	let allValid = $derived(
 		serverUrlValid &&
 			conditionImageUrlValid &&
@@ -62,7 +70,10 @@
 			negativePromptValid &&
 			seedValid &&
 			chunkFramesToAddValid &&
-			chunkTotalFramesValid
+			chunkTotalFramesValid &&
+			frameRateValid &&
+			bitRateValid &&
+			numInferenceStepsValid
 	);
 
 	let ltxWebSocket: LTXWebSocket | null = $state(null);
@@ -80,19 +91,6 @@
 	};
 
 	const handleGenerate = async () => {
-		if (!ltxWebSocket || ltxWebSocket.getConnectedUrl() !== serverUrl) {
-			ltxWebSocket?.disconnect();
-			ltxWebSocket = new LTXWebSocket(serverUrl);
-
-			// TODO: Create pipeline
-		}
-
-		if (prompt !== prevPrompt || negativePrompt !== prevNegativePrompt) {
-			// TODO: Update prompt
-			prevPrompt = prompt;
-			prevNegativePrompt = negativePrompt;
-		}
-
 		if (!videoBuffer || videoBuffer.width !== width || videoBuffer.height !== height) {
 			videoBuffer = new VideoBuffer(width, height);
 			videoBuffer.frames = [
@@ -102,13 +100,62 @@
 			];
 		}
 
-		// TODO: Update conditioning
+		if (!ltxWebSocket || ltxWebSocket.getConnectedUrl() !== serverUrl) {
+			ltxWebSocket?.disconnect();
+			ltxWebSocket = new LTXWebSocket();
+			await ltxWebSocket.connect(serverUrl);
+			await ltxWebSocket.sendMessage({
+				type: LTXWebSocketMessageType.CreatePipeline
+			});
+		}
 
-		// TODO: Generate
+		const conditioningItems = await videoBuffer.prepareConditioningItems({
+			chunkTotalFrames,
+			chunkFramesToAdd,
+			bitRate,
+			frameRate
+		});
+
+		const pipelineArgsMessage = {
+			type: LTXWebSocketMessageType.SetPipelineArgs,
+			seed,
+			pipeline_args: {
+				width,
+				height,
+				prompt,
+				negative_prompt: negativePrompt,
+				num_frames: chunkTotalFrames,
+				frame_rate: frameRate,
+				num_inference_steps: numInferenceSteps,
+				conditioning_videos: [conditioningItems.videoBytes],
+				conditioning_masks: [conditioningItems.masksBytes],
+				conditioning_start_frames: [0]
+			}
+		};
+		await ltxWebSocket.sendMessage(pipelineArgsMessage);
+
+		if (prompt !== prevPrompt || negativePrompt !== prevNegativePrompt) {
+			await ltxWebSocket.sendMessage({
+				type: LTXWebSocketMessageType.UpdatePrompt
+			});
+			prevPrompt = prompt;
+			prevNegativePrompt = negativePrompt;
+		}
+
+		await ltxWebSocket.sendMessage({
+			type: LTXWebSocketMessageType.UpdateConditioning
+		});
+
+		const generationResult = await ltxWebSocket.sendMessage({
+			type: LTXWebSocketMessageType.Generate
+		});
+		// Decode generationResult.video_bytes, then add its pending frames to the VideoBuffer
+		// VideoBuffer should inform the video player that there is more content to be displayed
+		// We also need a button to "apply" the pending frames to move them to the VideoBuffer.frames (i.e. used for conditioning) frames array in VideoBuffer
 	};
 </script>
 
-<div class="flex h-full w-full flex-row space-x-4 overflow-hidden bg-neutral-900 p-4">
+<div class="flex h-full w-full flex-row overflow-hidden bg-neutral-900 p-4">
 	<div
 		class="flex w-[400px] flex-none flex-col items-start justify-start overflow-x-hidden overflow-y-auto rounded-lg bg-neutral-800 px-6 py-4"
 	>
@@ -178,7 +225,7 @@
 		</div>
 
 		{#if !widthValid || !heightValid}
-			<div class="mt-2 text-sm text-red-500 italic">Width and height must be multiples of 8</div>
+			<div class="mt-2 text-sm text-red-500 italic">Width and height must be multiples of 32</div>
 		{/if}
 
 		<label
@@ -297,5 +344,8 @@
 		>
 			Generate
 		</button>
+	</div>
+	<div class="flex flex-auto flex-col items-center justify-center overflow-hidden">
+		<!-- Video player -->
 	</div>
 </div>

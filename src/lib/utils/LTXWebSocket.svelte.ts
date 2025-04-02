@@ -36,38 +36,46 @@ export class LTXWebSocket {
 	private _ws?: WebSocket;
 	private _messageCallback?: (message: LTXWebSocketReceivedMessage) => void = undefined;
 
-	constructor(url: string) {
-		this._url = url;
-		this._ws = new WebSocket(this._url);
-		this._ws.binaryType = 'arraybuffer';
-		this._ws.addEventListener('open', () => this._handleWebSocketOpen());
-		this._ws.addEventListener('message', (event: MessageEvent) =>
-			this._handleWebSocketMessage(event)
-		);
-		this._ws.addEventListener('close', () => this._handleWebSocketClose());
+	constructor() {
+		//
+	}
+
+	connect(url: string): Promise<void> {
+		return new Promise((resolve, reject) => {
+			this._url = url;
+			this._ws = new WebSocket(this._url);
+			this._ws.binaryType = 'arraybuffer';
+			this._ws.addEventListener('open', () => {
+				this._handleWebSocketOpen();
+				resolve();
+			});
+			this._ws.addEventListener('message', (event: MessageEvent) =>
+				this._handleWebSocketMessage(event)
+			);
+			this._ws.addEventListener('close', () => this._handleWebSocketClose());
+		});
 	}
 
 	disconnect() {
 		this._ws?.close();
 	}
 
-	sendMessage(message: LTXWebSocketMessage) {
-		return new Promise(
-			(resolve: (message: LTXWebSocketReceivedMessage) => void, reject: (error: Error) => void) => {
-				if (this.busy) {
-					reject(
-						new Error(
-							'LTXWebSocket is busy - did you forget to await a previous sendMessage(...) call?'
-						)
-					);
-					return;
-				}
-
-				this.busy = true;
-				this._messageCallback = resolve;
-				this._ws?.send(msgpackEncode(message));
+	sendMessage(message: LTXWebSocketMessage): Promise<LTXWebSocketReceivedMessage> {
+		return new Promise((resolve, reject) => {
+			if (this.busy) {
+				reject(
+					new Error(
+						'LTXWebSocket is busy - did you forget to await a previous sendMessage(...) call?'
+					)
+				);
+				return;
 			}
-		);
+
+			this.busy = true;
+			this._messageCallback = resolve;
+			const encoded = msgpackEncode(message);
+			this._ws?.send(encoded);
+		});
 	}
 
 	getConnectedUrl() {

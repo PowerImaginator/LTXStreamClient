@@ -56,6 +56,5 @@ export const encodeVideo = async ({
 	await encoder.flush();
 	muxer.finalize();
 
-	const blob = new Blob([muxer.target.buffer], { type: 'video/webm' });
-	return blob;
+	return muxer.target.buffer;
 };
