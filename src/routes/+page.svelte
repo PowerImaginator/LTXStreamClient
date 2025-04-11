@@ -1,9 +1,12 @@
 <script lang="ts">
 	import ArrowUpTray from '$lib/components/icons/20/ArrowUpTray.svelte';
+	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import { convertImageUrlToImageData } from '$lib/utils/convertImageUrlToImageData';
+	import { decodeVideo } from '$lib/utils/decodeVideo';
 	import { LTXWebSocket, LTXWebSocketMessageType } from '$lib/utils/LTXWebSocket.svelte';
 	import { openImageFile } from '$lib/utils/openImageFile';
 	import { VideoBuffer } from '$lib/utils/VideoBuffer.svelte';
+	import { onMount } from 'svelte';
 
 	const isValidServerUrl = (urlString: string) => {
 		let url: URL | null = null;
@@ -149,9 +152,17 @@
 		const generationResult = await ltxWebSocket.sendMessage({
 			type: LTXWebSocketMessageType.Generate
 		});
-		// Decode generationResult.video_bytes, then add its pending frames to the VideoBuffer
-		// VideoBuffer should inform the video player that there is more content to be displayed
-		// We also need a button to "apply" the pending frames to move them to the VideoBuffer.frames (i.e. used for conditioning) frames array in VideoBuffer
+		const decodedFrames = await decodeVideo(
+			generationResult.video_bytes.buffer.slice(
+				generationResult.video_bytes.byteOffset,
+				generationResult.video_bytes.byteOffset + generationResult.video_bytes.byteLength
+			)
+		);
+		for (let i = 0; i < conditioningItems.numGeneratedFrames; ++i) {
+			videoBuffer.frames.push(
+				decodedFrames[decodedFrames.length - conditioningItems.numGeneratedFrames + i]
+			);
+		}
 	};
 </script>
 
@@ -345,7 +356,13 @@
 			Generate
 		</button>
 	</div>
-	<div class="flex flex-auto flex-col items-center justify-center overflow-hidden">
-		<!-- Video player -->
+	<div class="flex flex-auto flex-col items-center justify-center overflow-hidden p-8">
+		{#if videoBuffer}
+			<VideoPlayer
+				{videoBuffer}
+				frameRate={frameRateValid ? frameRate : 24}
+				busy={ltxWebSocket?.busy || false}
+			/>
+		{/if}
 	</div>
 </div>

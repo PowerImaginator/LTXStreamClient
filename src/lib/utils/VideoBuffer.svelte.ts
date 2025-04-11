@@ -3,10 +3,9 @@ import { encodeImage } from './encodeImage';
 import { encodeVideo } from './encodeVideo';
 
 export class VideoBuffer {
-	width: number;
-	height: number;
-	frames: ImageBitmap[];
-	pendingFrames: ImageBitmap[];
+	width: number = $state(0);
+	height: number = $state(0);
+	frames: ImageBitmap[] = $state([]);
 
 	private _blackFrame?: ImageBitmap;
 	private _grayFrame?: ImageBitmap;
@@ -21,8 +20,6 @@ export class VideoBuffer {
 	constructor(width: number, height: number) {
 		this.width = width;
 		this.height = height;
-		this.frames = [];
-		this.pendingFrames = [];
 	}
 
 	async prepareConditioningItems({
@@ -69,7 +66,8 @@ export class VideoBuffer {
 
 		return {
 			videoBytes,
-			masksBytes
+			masksBytes,
+			numGeneratedFrames: chunkTotalFrames - numAvailableConditioningFrames
 		};
 	}
 

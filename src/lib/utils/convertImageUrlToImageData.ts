@@ -12,7 +12,7 @@ export const convertImageUrlToImageData = (
 			ctx.fillRect(0, 0, width, height);
 			const hRatio = width / img.width;
 			const vRatio = height / img.height;
-			const ratio = Math.min(hRatio, vRatio);
+			const ratio = Math.max(hRatio, vRatio);
 			const posX = (width - img.width * ratio) / 2;
 			const posY = (height - img.height * ratio) / 2;
 			ctx.drawImage(
