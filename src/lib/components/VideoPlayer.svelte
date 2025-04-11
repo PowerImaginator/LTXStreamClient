@@ -88,6 +88,7 @@
 					event.stopPropagation();
 					const rect = (event.target as HTMLDivElement).getBoundingClientRect();
 					const x = (event.clientX - rect.left) / rect.width;
+					prevTime = performance.now();
 					currentFrame = Math.min(
 						Math.floor(x * videoBuffer.frames.length),
 						videoBuffer.frames.length - 1

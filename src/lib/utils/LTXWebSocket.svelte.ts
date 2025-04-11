@@ -53,6 +53,11 @@ export class LTXWebSocket {
 				this._handleWebSocketMessage(event)
 			);
 			this._ws.addEventListener('close', () => this._handleWebSocketClose());
+			this._ws.addEventListener('error', () => {
+				window.alert(
+					'Unable to connect to the server - please ensure you entered the correct Server URL (e.g. http://127.0.0.1:8000/ws)'
+				);
+			});
 		});
 	}
 

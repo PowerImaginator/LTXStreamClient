@@ -1,0 +1,1 @@
+Must use constant lossless quality for encoding on both the client and server (imageio/PyAV) sides, otherwise image quality is degraded with each generation iteration

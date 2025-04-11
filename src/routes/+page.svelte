@@ -3,6 +3,7 @@
 	import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 	import { convertImageUrlToImageData } from '$lib/utils/convertImageUrlToImageData';
 	import { decodeVideo } from '$lib/utils/decodeVideo';
+	import { encodeVideo } from '$lib/utils/encodeVideo';
 	import { LTXWebSocket, LTXWebSocketMessageType } from '$lib/utils/LTXWebSocket.svelte';
 	import { openImageFile } from '$lib/utils/openImageFile';
 	import { VideoBuffer } from '$lib/utils/VideoBuffer.svelte';
@@ -64,6 +65,7 @@
 	let numInferenceStepsValid = $derived(
 		Number.isInteger(numInferenceSteps) && numInferenceSteps > 0
 	);
+	let continuousGeneration = $state(false);
 	let allValid = $derived(
 		serverUrlValid &&
 			conditionImageUrlValid &&
@@ -94,6 +96,10 @@
 	};
 
 	const handleGenerate = async () => {
+		if (!allValid) {
+			return;
+		}
+
 		if (!videoBuffer || videoBuffer.width !== width || videoBuffer.height !== height) {
 			videoBuffer = new VideoBuffer(width, height);
 			videoBuffer.frames = [
@@ -163,6 +169,36 @@
 				decodedFrames[decodedFrames.length - conditioningItems.numGeneratedFrames + i]
 			);
 		}
+
+		if (continuousGeneration) {
+			setTimeout(() => handleGenerate(), 0);
+		}
+	};
+
+	const handleDownload = async () => {
+		if (!allValid || !videoBuffer) {
+			return;
+		}
+
+		const encodedBytes = await encodeVideo({
+			width: videoBuffer.width,
+			height: videoBuffer.height,
+			bitRate: bitRate,
+			frameRate: frameRate,
+			frames: videoBuffer.frames
+		});
+		const blob = new Blob([encodedBytes], { type: 'video/mp4' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `LTXStream-${Date.now()}.webm`;
+		link.style.display = 'none';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		window.setTimeout(() => {
+			URL.revokeObjectURL(url);
+		}, 2000);
 	};
 </script>
 
@@ -354,6 +390,23 @@
 			onclick={handleGenerate}
 		>
 			Generate
+		</button>
+
+		<label class="mt-2 flex w-full flex-row items-center justify-center space-x-2">
+			<input
+				type="checkbox"
+				class="overflow-hidden rounded-sm"
+				bind:checked={continuousGeneration}
+			/>
+			<span>Continuous generation</span>
+		</label>
+
+		<button
+			class="mt-4 w-full flex-none cursor-pointer rounded-full border border-transparent bg-rose-500 px-4 py-2 transition-colors focus:bg-rose-600 enabled:hover:bg-rose-600 enabled:focus:border-rose-300 disabled:cursor-auto disabled:bg-neutral-700 disabled:text-neutral-400"
+			disabled={!allValid || !videoBuffer || videoBuffer.frames.length <= 1}
+			onclick={handleDownload}
+		>
+			Download
 		</button>
 	</div>
 	<div class="flex flex-auto flex-col items-center justify-center overflow-hidden p-8">
