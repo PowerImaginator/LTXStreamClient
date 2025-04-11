@@ -61,7 +61,7 @@
 	let frameRateValid = $derived(Number.isInteger(frameRate) && frameRate > 0);
 	let bitRate = $state(1e6);
 	let bitRateValid = $derived(Number.isInteger(bitRate) && bitRate > 0);
-	let numInferenceSteps = $state(25);
+	let numInferenceSteps = $state(40);
 	let numInferenceStepsValid = $derived(
 		Number.isInteger(numInferenceSteps) && numInferenceSteps > 0
 	);
