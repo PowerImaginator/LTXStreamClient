@@ -22,9 +22,10 @@ export const encodeVideo = async ({
 		}
 	});
 
-	const encoderConfig = {
-		codec: 'vp09.00.10.08',
+	const encoderConfig: VideoEncoderConfig = {
+		codec: 'vp09.01.20.08',
 		bitrate: bitRate,
+		bitrateMode: 'constant',
 		width,
 		height
 	};

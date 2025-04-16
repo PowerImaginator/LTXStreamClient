@@ -59,7 +59,7 @@
 	let chunkTotalFramesValid = $derived(chunkTotalFrames >= 9 && (chunkTotalFrames - 1) % 8 === 0);
 	let frameRate = $state(24);
 	let frameRateValid = $derived(Number.isInteger(frameRate) && frameRate > 0);
-	let bitRate = $state(1e6);
+	let bitRate = $state(2e6);
 	let bitRateValid = $derived(Number.isInteger(bitRate) && bitRate > 0);
 	let numInferenceSteps = $state(40);
 	let numInferenceStepsValid = $derived(
